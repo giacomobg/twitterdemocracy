@@ -1,19 +1,19 @@
 ### Twitter Democracy
 
 
-##### Aim
+#### Aim
 
 Gauge popularity of people and events by analysing tweets concerning them.
 
 Starting off with Jeremy Corbyn to stay simple.
 
 
-##### Prerequisites
+#### Prerequisites
 
 Create a sqlite3 database by navigating to the repository at the command line and typing `sqlite3 tweets.db < createdb.sql`.
 
 
-##### Files
+#### Files
 
 `corbyn_tweets.py` retrieves tweets for a specified amount of time and stores them in `tweets.db`.
 
