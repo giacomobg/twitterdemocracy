@@ -3,3 +3,5 @@ credentials.py
 *.png
 *.html
 *.db
+*.sql
+__pycache__/

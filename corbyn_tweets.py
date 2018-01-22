@@ -22,11 +22,23 @@ class tweets():
 
     def connect_to_db(self):
         """ Connect to sqlite3 db and remove existing rows"""
-        self.db = sqlite3.connect('tweets.db')
+        self.db = sqlite3.connect(self.search_term+'.db')
         # Remove existing rows from db
         self.cursor = self.db.cursor()
-        # deleting contents of the database without knowing what is in it is probably not good practice
-        self.cursor.execute('''DELETE FROM tweets;''')
+        # delete tweets table if it exists
+        self.cursor.execute('''DROP TABLE IF EXISTS tweets;''')
+        # create tweets table
+        self.cursor.execute('''
+                                CREATE TABLE tweets (
+                                    num PRIMARY KEY,
+                                    user_name text,
+                                    tweet_text text,
+                                    retweeted_status boolean,
+                                    in_reply_to text,
+                                    tweet_time time,
+                                    tweet_object text
+                                );
+                            ''')
         self.db.commit()
         
     def parse_tweet(self,line):
@@ -38,6 +50,7 @@ class tweets():
         except:
             return None
 
+        # There must be a simpler way to figure out if a tweet has been retweeted?
         tmp = tweet
         if tweet['text'][:4] == 'RT @':
             try:
@@ -52,16 +65,14 @@ class tweets():
         else:
             text = tmp['text']
 
-        # SELECT strftime('%s','2004-01-01 02:34:56')
-        # parsed = datetime.datetime.strptime('Tue Dec 19 22:10:03 +0000 2017', "%a %b %d %X %z %Y")
-        # print(tweet['created_at'])
-
         extracted_info = {
+            'num': self.counter,
             'user_name': tweet['user']['screen_name'],
             'tweet_text': text,
             'retweeted_status': retweeted_status,
             'in_reply_to': tweet['in_reply_to_screen_name'],
             'tweet_time': tweet['created_at'],
+            'tweet_object': decoded_line
         }
         return extracted_info
 
@@ -69,8 +80,8 @@ class tweets():
         """ Insert tweet information into sqlite3 db"""
         cursor = self.db.cursor()
         cursor.execute('''
-            INSERT INTO tweets(user_name, tweet_text, retweeted_status, in_reply_to, tweet_time)
-            VALUES(:user_name, :tweet_text, :retweeted_status, :in_reply_to, :tweet_time)
+            INSERT INTO tweets(num, user_name, tweet_text, retweeted_status, in_reply_to, tweet_time, tweet_object)
+            VALUES(:num, :user_name, :tweet_text, :retweeted_status, :in_reply_to, :tweet_time, :tweet_object)
             ''', (info))
         self.db.commit()
 
@@ -82,7 +93,8 @@ class tweets():
         r = self.start_stream()
         
         start_time = time.time()
-        for line in r.iter_lines():
+        for self.counter,line in enumerate(r.iter_lines()):
+            # Comment out to run ad infinitum
             if time.time() - start_time > self.seconds:
                 break
             extracted_info = self.parse_tweet(line)
