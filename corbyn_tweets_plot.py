@@ -20,7 +20,7 @@ class PlotTweets():
 
     def connect_to_db(self):
         """ Connect to sqlite3 db with tweet data."""
-        self.db = sqlite3.connect('tweets.db')
+        self.db = sqlite3.connect('Corbyn.db')
 
     def get_data(self):
         """ Retrieve tweet data from sqlite3 db. """
@@ -64,10 +64,11 @@ class PlotTweets():
             print(volume)
             self.db.close()
             plt.cla()
-            plt.plot_date(self.datetime,volume,'-')
+            # Remove last datapoint since it has tweets for a shorter length of time
+            plt.plot_date(self.datetime[:-1],volume[:-1],'-')
             plt.title('Volume of Jeremy Corbyn Tweets',fontsize=12)
             # plt.xlabel('Time')
-            plt.ylabel('Number of Tweets per '+str(self.time_interval)+' Seconds')
+            plt.ylabel('Number of Tweets per '+str(self.time_interval/60)+' Minutes')
             self.ax.xaxis.set_major_formatter(DateFormatter('%-d %b %H:%M'))
             self.fig.autofmt_xdate()
 
@@ -91,7 +92,7 @@ class PlotTweets():
 
 if __name__ == '__main__':
     # minutes_total divided by minutes_interval must be an integer
-    minutes_interval = 0.2
-    minutes_total = 1
+    minutes_interval = 0.5
+    minutes_total = 3
     plotter = PlotTweets(time_interval=int(minutes_interval*60),frames=int(minutes_total/minutes_interval))
-    plotter.dynamic_plot()
+    plotter.instant_plot()

@@ -33,7 +33,6 @@ class tweets():
                                     num PRIMARY KEY,
                                     user_name text,
                                     tweet_text text,
-                                    retweeted_status boolean,
                                     in_reply_to text,
                                     tweet_time time,
                                     tweet_object text
@@ -52,24 +51,23 @@ class tweets():
 
         # There must be a simpler way to figure out if a tweet has been retweeted?
         tmp = tweet
-        if tweet['text'][:4] == 'RT @':
-            try:
-                tmp = tweet['retweeted_status']
-            except:
-                pprint(tweet)
-            retweeted_status = True
-        else:
-            retweeted_status = False
+        if 'retweeted_status' in tmp.keys():
+            return None
         if 'extended_tweet' in tmp.keys():
-            text = tmp['extended_tweet']['full_text']
+            try:
+                text = tmp['extended_tweet']['full_text']
+            except:
+                pprint(tmp)
         else:
-            text = tmp['text']
+            try:
+                text = tmp['text']
+            except:
+                pprint(tmp)
 
         extracted_info = {
             'num': self.counter,
             'user_name': tweet['user']['screen_name'],
             'tweet_text': text,
-            'retweeted_status': retweeted_status,
             'in_reply_to': tweet['in_reply_to_screen_name'],
             'tweet_time': tweet['created_at'],
             'tweet_object': decoded_line
@@ -80,8 +78,8 @@ class tweets():
         """ Insert tweet information into sqlite3 db"""
         cursor = self.db.cursor()
         cursor.execute('''
-            INSERT INTO tweets(num, user_name, tweet_text, retweeted_status, in_reply_to, tweet_time, tweet_object)
-            VALUES(:num, :user_name, :tweet_text, :retweeted_status, :in_reply_to, :tweet_time, :tweet_object)
+            INSERT INTO tweets(num, user_name, tweet_text, in_reply_to, tweet_time, tweet_object)
+            VALUES(:num, :user_name, :tweet_text, :in_reply_to, :tweet_time, :tweet_object)
             ''', (info))
         self.db.commit()
 
@@ -93,13 +91,15 @@ class tweets():
         r = self.start_stream()
         
         start_time = time.time()
-        for self.counter,line in enumerate(r.iter_lines()):
-            # Comment out to run ad infinitum
-            if time.time() - start_time > self.seconds:
-                break
+        self.counter = 0
+        for line in r.iter_lines():
+            # # Comment out to run ad infinitum
+            # if time.time() - start_time > self.seconds:
+            #     break
             extracted_info = self.parse_tweet(line)
             if extracted_info != None:
                 self.insert_tweet_into_db(extracted_info)
+                self.counter += 1
         self.db.close()
 
 
