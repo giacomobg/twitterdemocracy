@@ -1,4 +1,4 @@
-### Twitter Democracy
+## Twitter Democracy
 
 
 #### Aim
@@ -12,6 +12,7 @@ Starting off with Jeremy Corbyn to stay simple.
 
 Create a sqlite3 database by navigating to the repository at the command line and typing `sqlite3 tweets.db < createdb.sql`.
 
+Folder must contain a `credentials.py` file defining tokens for Twitter's OAuth.
 
 #### Files
 
