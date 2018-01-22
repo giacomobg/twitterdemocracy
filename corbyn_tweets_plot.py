@@ -91,7 +91,7 @@ class PlotTweets():
 
 if __name__ == '__main__':
     # minutes_total divided by minutes_interval must be an integer
-    minutes_interval = 0.05
+    minutes_interval = 0.2
     minutes_total = 1
     plotter = PlotTweets(time_interval=int(minutes_interval*60),frames=int(minutes_total/minutes_interval))
     plotter.dynamic_plot()

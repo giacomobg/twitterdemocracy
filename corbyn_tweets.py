@@ -92,7 +92,7 @@ class tweets():
 
 
 if __name__ == '__main__':
-    # Set number of seconds' worth of tweets to record
-    seconds = 60*60
-    corbyn = tweets('Corbyn',seconds)
+    # Set number of minutes' worth of tweets to record
+    minutes = 1
+    corbyn = tweets('Corbyn',minutes*60)
     corbyn.twitter_api_to_db()
