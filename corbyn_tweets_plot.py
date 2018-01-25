@@ -6,21 +6,21 @@ from matplotlib.dates import DateFormatter
 import seaborn as sns
 
 class PlotTweets():
-    """ Accesses a sqlite3 database containing tweet data and plots it.
-    Use by running the plot() method."""
-    def __init__(self,time_interval,frames):
+    """ Accesses a sqlite3 database containing tweet data and plots it."""
+    def __init__(self,time_interval,frames,topics):
         super(PlotTweets, self).__init__()
         self.time_interval = time_interval
         self.frames = frames
+        self.topics = topics
         attributes = {
             'axes.facecolor' : '#f0e6f2'
         }
         sns.set(context='paper',style='darkgrid',rc=attributes)
         self.fig, self.ax = plt.subplots()
 
-    def connect_to_db(self):
+    def connect_to_db(self,topic):
         """ Connect to sqlite3 db with tweet data."""
-        self.db = sqlite3.connect('Corbyn.db')
+        self.db = sqlite3.connect(topic+'.db')
 
     def get_data(self):
         """ Retrieve tweet data from sqlite3 db. """
@@ -31,10 +31,13 @@ class PlotTweets():
         return data
 
     def compute_volumes(self,data):
-        """ Computes volumes of tweets per time period."""
+        """ Takes tweet data as input.
+        Computes volumes of tweets per time period.
+        Gives the list volumes with the number of tweets in each time interval given by the list xdates. 
+        """
 
         time,text = zip(*data)
-        self.datetime = [datetime.datetime.strptime(time[0], "%a %b %d %X %z %Y")]
+        xdates = [datetime.datetime.strptime(time[0], "%a %b %d %X %z %Y")]
 
         time_epoch = [datetime.datetime.strptime(t, "%a %b %d %X %z %Y").timestamp() for t in time]
 
@@ -48,37 +51,45 @@ class PlotTweets():
                 volume[-1] += 1
             else:
                 current_epoch += (t-current_epoch)//self.time_interval*self.time_interval
+                xdates.append(xdates[-1] + datetime.timedelta(seconds=self.time_interval))
                 volume.append(1)
-        return volume
+        return volume, xdates
 
-    def plot(self):
-        """ Builds plot ready for drawing or animating. """
-        self.connect_to_db()
-        data = self.get_data()
-        if data != []:
-            volume = self.compute_volumes(data)
-            while len(self.datetime) < len(volume):
-                # add time_interval seconds to datetime
-                self.datetime.append(self.datetime[-1] + datetime.timedelta(seconds=self.time_interval))
-            print(self.datetime)
-            print(volume)
+
+    def plot_volume(self):
+        """ Builds plot of volume of Tweets ready for drawing or animating. """
+        volume_lst = []
+        xdates_lst = []
+        for topic in self.topics:
+            self.connect_to_db(topic)
+            data = self.get_data()
             self.db.close()
-            plt.cla()
-            # Remove last datapoint since it has tweets for a shorter length of time
-            plt.plot_date(self.datetime[:-1],volume[:-1],'-')
-            plt.title('Volume of Jeremy Corbyn Tweets',fontsize=12)
-            # plt.xlabel('Time')
-            plt.ylabel('Number of Tweets per '+str(self.time_interval/60)+' Minutes')
-            self.ax.xaxis.set_major_formatter(DateFormatter('%-d %b %H:%M'))
-            self.fig.autofmt_xdate()
+            if data == []:
+                print('WARNING: Nothing to plot')
+                return
+            else:
+                # Ensure tmp_xdates is of the correct length
+                tmp_volume, tmp_xdates = self.compute_volumes(data)
+                volume_lst.append(tmp_volume)
+                xdates_lst.append(tmp_xdates)
+        plt.cla()
+        # Remove last datapoint since it represents a shorter length of time
+        for counter, topic in enumerate(self.topics):
+            plt.plot_date(xdates_lst[counter][:-1],volume_lst[counter][:-1],'-',label=topic)
+        plt.title('Volume of Tweets by Topic',fontsize=12)
+        # plt.xlabel('Time')
+        plt.ylabel('Number of Tweets per '+str(int(self.time_interval/60))+' Minutes')
+        self.ax.xaxis.set_major_formatter(DateFormatter('%-d %b %H:%M'))
+        self.ax.legend()
+        self.fig.autofmt_xdate()
 
     def animate(self,i):
         """ Animation function for dynamic plot. """
-        self.plot()
+        self.plot_volume()
 
     def instant_plot(self):
         """ Save plot of tweet data as png. """
-        self.plot()
+        self.plot_volume()
         plt.savefig('tweet_volume.png')
 
     def dynamic_plot(self):
@@ -92,7 +103,8 @@ class PlotTweets():
 
 if __name__ == '__main__':
     # minutes_total divided by minutes_interval must be an integer
-    minutes_interval = 0.5
-    minutes_total = 3
-    plotter = PlotTweets(time_interval=int(minutes_interval*60),frames=int(minutes_total/minutes_interval))
-    plotter.instant_plot()
+    minutes_interval = 5
+    minutes_total = 60
+    topics = ['Corbyn', 'Brexit']
+    plotter = PlotTweets(time_interval=int(minutes_interval*60),frames=int(minutes_total/minutes_interval),topics=topics)
+    plotter.dynamic_plot()
